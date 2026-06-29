@@ -65,43 +65,49 @@ def maximize_sharpe_ratio(annual_returns, annual_covariance):
     # Return the optimal weights array
     return result.x
 
-# Fetch prices
-prices = get_stock_data(test_tickers, start, end)
+st.title("Portfolio Optimizer")
+st.write("Enter your tickers to find the mathematically optimal asset allocation.")
 
-# Calculate daily returns
-daily_returns = calculate_daily_returns(prices)
+st.sidebar.header("Portfolio Settings")
+tickers_input = st.sidebar.text_input("Tickers (comma-separated)", "AAPL, MSFT, GOOGL")
+ticker_list = [t.strip().upper() for t in tickers_input.split(",")]
+start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2023-01-01"))
+end_date = st.sidebar.date_input("End Date", pd.to_datetime("2023-12-31"))
 
-# Get the annualized stats
-annual_returns, annual_covariance = get_portfolio_stats(daily_returns)
-
-print("--- ANNUALIZED RETURNS ---")
-print(annual_returns)
-print("\n--- ANNUALIZED COVARIANCE MATRIX ---")
-print(annual_covariance)
-
-annual_returns, annual_covariance = get_portfolio_stats(daily_returns)
-
-# Define equal weights for 3 assets (0.3333, 0.3333, 0.3333)
-test_weights = np.array([1/3, 1/3, 1/3])
-
-# Calculate performance
-p_return, p_volatility, p_sharpe = calculate_portfolio_performance(test_weights, annual_returns, annual_covariance)
-
-print("\n--- EQUAL WEIGHT PORTFOLIO PERFORMANCE ---")
-print(f"Expected Annual Return: {p_return:.2%}")
-print(f"Annual Volatility (Risk): {p_volatility:.2%}")
-print(f"Sharpe Ratio: {p_sharpe:.2f}")
-
-# Run the optimizer
-optimal_weights = maximize_sharpe_ratio(annual_returns, annual_covariance)
-
-# Calculate the optimized portfolio's performance
-opt_return, opt_volatility, opt_sharpe = calculate_portfolio_performance(optimal_weights, annual_returns, annual_covariance)
-
-print("\n--- OPTIMIZED PORTFOLIO PERFORMANCE ---")
-for ticker, weight in zip(test_tickers, optimal_weights):
-    print(f"{ticker} Optimal Weight: {weight:.2%}")
-
-print(f"\nExpected Annual Return: {opt_return:.2%}")
-print(f"Annual Volatility (Risk): {opt_volatility:.2%}")
-print(f"Sharpe Ratio: {opt_sharpe:.2f}")
+if st.sidebar.button("Run Optimization"):
+    
+    # st.spinner shows a loading animation while the backend math runs
+    with st.spinner("Fetching data and crunching numbers..."):
+        
+        # 1. Fetch data and calculate stats using your backend functions
+        formatted_start = start_date.strftime('%Y-%m-%d')
+        formatted_end = end_date.strftime('%Y-%m-%d')
+        prices = get_stock_data(ticker_list, start_date=formatted_start, end_date=formatted_end)
+        daily_returns = calculate_daily_returns(prices)
+        annual_returns, annual_covariance = get_portfolio_stats(daily_returns)
+        
+        # 2. Run your Scipy Optimizer engine
+        optimal_weights = maximize_sharpe_ratio(annual_returns, annual_covariance)
+        
+        # 3. Calculate the final optimal performance metrics
+        opt_return, opt_volatility, opt_sharpe = calculate_portfolio_performance(
+            optimal_weights, annual_returns, annual_covariance
+        )
+        
+        # ==========================================
+        # STEP 5: DISPLAY THE RESULTS ON THE WEB PAGE
+        # ==========================================
+        st.subheader("💡 Optimal Asset Allocation")
+        
+        # Loop through each ticker and its calculated math weight
+        for ticker, weight in zip(annual_returns.index, optimal_weights):
+            # st.metric displays data beautifully with a label and value
+            st.metric(label=f"{ticker} Weight", value=f"{weight:.2%}")
+            
+        st.subheader("📊 Expected Portfolio Metrics")
+        
+        # st.columns splits the webpage layout into 3 parallel segments
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Expected Annual Return", f"{opt_return:.2%}")
+        col2.metric("Annual Volatility (Risk)", f"{opt_volatility:.2%}")
+        col3.metric("Sharpe Ratio", f"{opt_sharpe:.2f}")
