@@ -68,6 +68,7 @@ def maximize_sharpe_ratio(annual_returns, annual_covariance):
 st.title("Portfolio Optimizer")
 st.write("Enter your tickers to find the mathematically optimal asset allocation.")
 
+# Format the sidebar for user input
 st.sidebar.header("Portfolio Settings")
 tickers_input = st.sidebar.text_input("Tickers (comma-separated)", "AAPL, MSFT, GOOGL")
 ticker_list = [t.strip().upper() for t in tickers_input.split(",")]
@@ -79,34 +80,31 @@ if st.sidebar.button("Run Optimization"):
     # st.spinner shows a loading animation while the backend math runs
     with st.spinner("Fetching data and crunching numbers..."):
         
-        # 1. Fetch data and calculate stats using your backend functions
+        # Fetch data and calculate stats using your backend functions
         formatted_start = start_date.strftime('%Y-%m-%d')
         formatted_end = end_date.strftime('%Y-%m-%d')
         prices = get_stock_data(ticker_list, start_date=formatted_start, end_date=formatted_end)
         daily_returns = calculate_daily_returns(prices)
         annual_returns, annual_covariance = get_portfolio_stats(daily_returns)
         
-        # 2. Run your Scipy Optimizer engine
+        # Run the Scipy Optimizer engine
         optimal_weights = maximize_sharpe_ratio(annual_returns, annual_covariance)
         
-        # 3. Calculate the final optimal performance metrics
+        # Calculate the final optimal performance metrics
         opt_return, opt_volatility, opt_sharpe = calculate_portfolio_performance(
             optimal_weights, annual_returns, annual_covariance
         )
         
-        # ==========================================
-        # STEP 5: DISPLAY THE RESULTS ON THE WEB PAGE
-        # ==========================================
-        st.subheader("💡 Optimal Asset Allocation")
+        st.subheader("Optimal Asset Allocation")
         
-        # Loop through each ticker and its calculated math weight
+        # Loop through each ticker and its calculated optimal weight
         for ticker, weight in zip(annual_returns.index, optimal_weights):
             # st.metric displays data beautifully with a label and value
             st.metric(label=f"{ticker} Weight", value=f"{weight:.2%}")
             
-        st.subheader("📊 Expected Portfolio Metrics")
+        st.subheader("Expected Portfolio Metrics")
         
-        # st.columns splits the webpage layout into 3 parallel segments
+        # Split into 3 coloumns with desired metrics
         col1, col2, col3 = st.columns(3)
         col1.metric("Expected Annual Return", f"{opt_return:.2%}")
         col2.metric("Annual Volatility (Risk)", f"{opt_volatility:.2%}")
