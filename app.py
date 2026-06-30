@@ -4,6 +4,12 @@ import numpy as np
 from scipy.optimize import minimize
 import streamlit as st
 
+ticker_pool = [
+    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "NFLX", "AMD", "INTC",
+    "JPM", "V", "MA", "DIS", "KO", "PEP", "WMT", "COST", "NKE", "XOM", 
+    "CVX", "PG", "JNJ", "PFE", "MRK", "UNH", "HD", "LOW", "BAC", "GS"
+]
+
 # Define the function 
 def get_stock_data(tickers, start_date, end_date):
     data = yf.download(tickers, start=start_date, end=end_date, auto_adjust=False)
@@ -70,8 +76,26 @@ st.write("Enter your tickers to find the mathematically optimal asset allocation
 
 # Format the sidebar for user input
 st.sidebar.header("Portfolio Settings")
-tickers_input = st.sidebar.text_input("Tickers (comma-separated)", "AAPL, MSFT, GOOGL")
-ticker_list = [t.strip().upper() for t in tickers_input.split(",")]
+
+
+# Initialize tickers in session state 
+if "selected_tickers" not in st.session_state:
+    st.session_state.selected_tickers = ["AAPL", "MSFT", "GOOGL"]
+
+# When the button is clicked, update the session state with 5 new random ones
+if st.sidebar.button("Randomise Tickers"):
+    random_tickers = np.random.choice(ticker_pool, size=5, replace=False)
+    # Join them with commas and save to state
+    st.session_state.selected_tickers = [t.strip().upper() for t in random_tickers]
+
+# Use the session state list as the default value for the text input
+tickers_input = st.sidebar.text_input(
+    "Tickers (comma-separated)", 
+    value=", ".join(st.session_state.selected_tickers)
+)
+
+ticker_list = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
+
 start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2023-01-01"))
 end_date = st.sidebar.date_input("End Date", pd.to_datetime("2023-12-31"))
 
@@ -109,3 +133,5 @@ if st.sidebar.button("Run Optimization"):
         col1.metric("Expected Annual Return", f"{opt_return:.2%}")
         col2.metric("Annual Volatility (Risk)", f"{opt_volatility:.2%}")
         col3.metric("Sharpe Ratio", f"{opt_sharpe:.2f}")
+
+
